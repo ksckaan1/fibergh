@@ -145,6 +145,18 @@ type Req struct {
 `GHforSSE[Req, Data]` provides type-safe SSE with request binding and named events. It accepts a retry duration and a handler that receives the parsed request and a `send` function.
 
 ```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/ksckaan1/fibergh"
+)
+
 type ChatReq struct {
 	RoomID string `uri:"id"`
 }
@@ -153,7 +165,7 @@ type ChatEvent struct {
 	Message string `json:"message"`
 }
 
-app.Post("/stream/:id", fibergh.GHforSSE(5*time.Second, func(ctx context.Context, req *ChatReq, send func(name string, data ChatEvent) error) error {
+func chatHandler(ctx context.Context, req *ChatReq, send func(name string, data ChatEvent) error) error {
 	for i := 0; i < 10; i++ {
 		if err := send("message", ChatEvent{Message: fmt.Sprintf("hello %d", i)}); err != nil {
 			return err
@@ -161,7 +173,15 @@ app.Post("/stream/:id", fibergh.GHforSSE(5*time.Second, func(ctx context.Context
 		time.Sleep(time.Second)
 	}
 	return nil
-}))
+}
+
+func main() {
+	app := fiber.New()
+
+	app.Post("/stream/:id", fibergh.GHforSSE(5*time.Second, chatHandler))
+
+	log.Fatal(app.Listen(":3000"))
+}
 ```
 
 ## License
