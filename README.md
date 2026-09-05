@@ -140,16 +140,22 @@ type Req struct {
 
 > For full details on request binding, default values, validation, and more, see the [Fiber Bind docs](https://docs.gofiber.io/api/bind/).
 
-### `GHWithSSE` — Server-Sent Events
+### `GHforSSE` — Server-Sent Events
+
+`GHforSSE[Req, Data]` provides type-safe SSE with request binding and named events. It accepts a retry duration and a handler that receives the parsed request and a `send` function.
 
 ```go
-type Event struct {
+type ChatReq struct {
+	RoomID string `uri:"id"`
+}
+
+type ChatEvent struct {
 	Message string `json:"message"`
 }
 
-app.Get("/stream", fibergh.GHWithSSE(func(ctx context.Context, send func(Event) error) error {
+app.Post("/stream/:id", fibergh.GHforSSE(5*time.Second, func(ctx context.Context, req *ChatReq, send func(name string, data ChatEvent) error) error {
 	for i := 0; i < 10; i++ {
-		if err := send(Event{Message: fmt.Sprintf("event %d", i)}); err != nil {
+		if err := send("message", ChatEvent{Message: fmt.Sprintf("hello %d", i)}); err != nil {
 			return err
 		}
 		time.Sleep(time.Second)
