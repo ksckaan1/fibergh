@@ -2,6 +2,32 @@
 
 Type-safe HTTP handlers for [Fiber](https://gofiber.io/) using Go generics. Bind requests, encode responses, and handle errors with zero boilerplate.
 
+## What is a Generic Handler?
+
+A generic handler is a typed wrapper that removes boilerplate from your handlers. But the real benefit goes beyond convenience.
+
+**Zero third-party dependencies in your handlers.** Your handler function receives a typed request struct and returns a typed response struct — no Fiber, no `fiber.Ctx`, no framework-specific code. This means your business logic is decoupled from the router.
+
+```go
+// This handler has ZERO framework imports
+func CreateUserHandler(ctx context.Context, req *CreateUserReq) (*CreateUserResp, int, error) {
+    // pure business logic
+}
+```
+
+**Router-agnostic.** Since your handlers don't depend on Fiber, you could switch to chi, echo, or any other router without rewriting handler code. Router changes are rare in real projects, but this flexibility means your core logic is never held hostage by a framework choice.
+
+**Readable request/response handling.** The most common boilerplate in web apps is reading requests and writing responses. Struct tags make this declarative and self-documenting — you see exactly what comes in and what goes out at a glance, without digging through handler code.
+
+```go
+// You can immediately see: name from body, age from query, token from cookie
+type Req struct {
+    Name  string `json:"name"`
+    Age   int    `query:"age"`
+    Token string `cookie:"token"`
+}
+```
+
 ## Install
 
 ```bash
@@ -92,16 +118,16 @@ The `cookie` tag format is `cookie:"<name>,<duration>"` or `cookie:"<name>,clear
 
 Additional options are set via separate struct tags:
 
-| Tag | Description | Default |
-|-----|-------------|---------|
-| `cookiePath` | Cookie path | `/` |
-| `cookieSameSite` | SameSite attribute | `Lax` |
-| `cookieSecure` | Secure flag | `false` |
-| `cookieHTTPOnly` | HttpOnly flag | `false` |
-| `cookieDomain` | Domain attribute | (empty) |
-| `cookieMaxAge` | Max-Age in seconds | `0` |
-| `cookiePartitioned` | Partitioned flag | `false` |
-| `cookieSessionOnly` | Session-only flag | `false` |
+| Tag                 | Description        | Default |
+| ------------------- | ------------------ | ------- |
+| `cookiePath`        | Cookie path        | `/`     |
+| `cookieSameSite`    | SameSite attribute | `Lax`   |
+| `cookieSecure`      | Secure flag        | `false` |
+| `cookieHTTPOnly`    | HttpOnly flag      | `false` |
+| `cookieDomain`      | Domain attribute   | (empty) |
+| `cookieMaxAge`      | Max-Age in seconds | `0`     |
+| `cookiePartitioned` | Partitioned flag   | `false` |
+| `cookieSessionOnly` | Session-only flag  | `false` |
 
 ```go
 type Resp struct {
