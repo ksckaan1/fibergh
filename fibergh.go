@@ -3,17 +3,16 @@ package fibergh
 import (
 	"cmp"
 	"context"
-	"encoding/json/v2"
 	"fmt"
-	"net/http"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/gofiber/fiber/v3"
-	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gofiber/fiber/v3/middleware/sse"
 )
 
 func GH[Req, Resp any](handlerFunc func(context.Context, *Req) (Resp, int, error)) fiber.Handler {
@@ -170,35 +169,30 @@ func encodeCookie(c fiber.Ctx, resp any) error {
 	return nil
 }
 
-func GHWithSSE[Data any](handlerFunc func(context.Context, func(Data) error) error) fiber.Handler {
-	return adaptor.HTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/event-stream")
-		w.Header().Set("Cache-Control", "no-cache")
-		w.Header().Set("Connection", "keep-alive")
-		w.Header().Set("X-Accel-Buffering", "no")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+func GHforSSE[Req, Data any](retry time.Duration, handlerFunc func(context.Context, *Req, func(name string, data Data) error) error) fiber.Handler {
+	return sse.New(sse.Config{
+		Retry: retry,
+		Handler: func(c fiber.Ctx, stream *sse.Stream) error {
+			req := new(Req)
 
-		flusher, ok := w.(http.Flusher)
-		if !ok {
-			http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
-			return
-		}
-
-		err := handlerFunc(r.Context(), func(data Data) error {
-			dataBytes, err := json.Marshal(data)
+			err := c.Bind().All(req)
 			if err != nil {
-				return fmt.Errorf("json.Marshal: %w", err)
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+					"error": err.Error(),
+				})
 			}
 
-			fmt.Fprintf(w, "data: %s\n\n", dataBytes) //nolint:errcheck
-			flusher.Flush()
-
+			err = handlerFunc(c, req, func(name string, data Data) error {
+				return stream.Event(sse.Event{
+					ID:   uuid.NewV7().String(),
+					Name: name,
+					Data: data,
+				})
+			})
+			if err != nil {
+				return err
+			}
 			return nil
-		})
-		if err != nil {
-			dataBytes, _ := json.Marshal(map[string]string{"error": err.Error()})
-			fmt.Fprintf(w, "data: %s\n\n", dataBytes) //nolint:errcheck
-			flusher.Flush()
-		}
+		},
 	})
 }
