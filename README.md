@@ -89,6 +89,55 @@ func main() {
 }
 ```
 
+### `GH` with Multipart Form
+
+Use `multipart.FileHeader` for file uploads with `form` struct tags:
+
+```go
+package main
+
+import (
+	"context"
+	"log"
+	"mime/multipart"
+	"net/http"
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/ksckaan1/fibergh"
+)
+
+type UploadReq struct {
+	Title  string                `form:"title"`
+	File   *multipart.FileHeader `form:"file"`
+}
+
+type UploadResp struct {
+	Filename string `json:"filename"`
+	Size     int64  `json:"size"`
+}
+
+func UploadHandler(ctx context.Context, req *UploadReq) (*UploadResp, int, error) {
+	return &UploadResp{
+		Filename: req.File.Filename,
+		Size:     req.File.Size,
+	}, http.StatusOK, nil
+}
+
+func main() {
+	app := fiber.New()
+
+	app.Post("/upload", fibergh.GH(UploadHandler))
+
+	log.Fatal(app.Listen(":3000"))
+}
+```
+
+```bash
+curl -X POST http://localhost:3000/upload \
+  -F "title=My Document" \
+  -F "file=@report.pdf"
+```
+
 ### Struct Tags
 
 **Request binding** is powered by Fiber v3's [Bind](https://docs.gofiber.io/api/bind/) feature. `GH` calls `c.Bind().All(req)` under the hood, which binds data from URI params, request body, query params, headers, and cookies in that precedence order.
