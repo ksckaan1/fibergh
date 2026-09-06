@@ -38,7 +38,9 @@ go get github.com/ksckaan1/fibergh
 
 ### `GH` — Generic HTTP Handler
 
-`GH[Req, Resp]` wraps a typed handler function into a `fiber.Handler`. It automatically:
+`GH[Req, Resp]` wraps a typed handler function into a `fiber.Handler`. Your handler returns `(response, statusCode, error)` — the `int` is the HTTP status code sent to the client.
+
+It automatically:
 
 - Binds request body, query params, and path params into your `Req` struct
 - Encodes response headers from `header` struct tags
